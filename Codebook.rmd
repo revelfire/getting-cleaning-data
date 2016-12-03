@@ -1,0 +1,110 @@
+---
+title: "Merging/Cleaning Data Final Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# CRITERIA
+- The submitted data set is tidy.
+- The Github repo contains the required scripts.
+- GitHub contains a code book that modifies and updates the available 
+ codebooks with the data to indicate all the variables and summaries calculated, 
+- along with units, and any other relevant information.
+- The README that explains the analysis files is clear and understandable.
+- The work submitted for this project is the work of the student who submitted it.
+
+
+# Instructions As Code
+*You should create one R script called run_analysis.R that does the following.*
+
+```{r include=FALSE}
+library(dplyr)
+library(data.table)
+```
+
+*1. Merges the training and the test sets to create one data set.*
+
+```{r}
+X_train <- read.table("data/train/X_train.txt")
+X_test <- read.table("data/test/X_test.txt")
+
+y_train <- read.table("data/train/y_train.txt")
+y_test <- read.table("data/test/y_test.txt")
+
+subject_train <- read.table("data/train/subject_train.txt")
+subject_test <- read.table("data/test/subject_test.txt")
+
+X_combined <- bind_rows(X_train, X_test)
+y_combined <- bind_rows(y_train, y_test)
+subject_combined <- bind_rows(subject_train, subject_test)
+```
+
+*2. Extracts only the measurements on the mean and standard deviation for each measurement.*
+
+First lets give them names so we can slice and dice.
+Note that some of the names are invalid from an R perspective, so lets clean them up
+```{r}
+names_list <- read.csv("data/features.txt", sep=" ", header = FALSE)
+colnames <- make.names(names=as.character(names_list[,2]), unique=TRUE, allow_ = TRUE)
+setnames(X_combined, colnames)
+```
+
+Now lets extract
+```{r}
+X_mean_and_std <- X_combined %>% select(contains("mean"), contains("std"))
+```
+
+*3. Uses descriptive activity names to name the activities in the data set*
+```{r}
+activity_labels_list <- read.csv("data/activity_labels.txt", sep=" ", header = FALSE)
+```
+
+Marry in the y values for adding the activity names
+```{r}
+Xy_combined <- bind_cols(X_mean_and_std, y_combined)
+Xy_combined <- Xy_combined %>% 
+                  rename(Activity.Index=V1) %>% 
+                  inner_join(activity_labels_list, by=c("Activity.Index" = "V1"))
+```
+
+Add in the subject ids
+```{r}
+Xy_combined <- bind_cols(Xy_combined, subject_combined)
+Xy_combined <- Xy_combined %>% 
+                rename(Subject.Id=V1, Activity.Name=V2) %>%
+                select(-Activity.Index) #Remove activity index
+str(Xy_combined)
+```
+
+*4. Appropriately labels the data set with descriptive variable names.*
+
+```{r}
+names(Xy_combined) <- sub("^f", "Frequency", names(Xy_combined))
+names(Xy_combined) <- sub("^t", "Time", names(Xy_combined))
+names(Xy_combined) <- sub("Acc", "Acceleration", names(Xy_combined))
+names(Xy_combined) <- sub("Gyro", "Gyroscope", names(Xy_combined))
+names(Xy_combined) <- sub("angle.t", "Angle.Time", names(Xy_combined))
+names(Xy_combined) <- sub("angle", "Angle", names(Xy_combined))
+names(Xy_combined) <- sub("BodyBody", "Body", names(Xy_combined))
+names(Xy_combined)
+```
+
+*5. From the data set in step 4, creates a second, independent tidy data set with the 
+   average of each variable for each activity and each subject.*
+   
+Assuming this is to be something like
+
+subject activity  avg-tBodyAcc.mean...X tBodyAcc.mean...Y ...etc.
+
+1       walking   0.3535  -0.131
+
+where subject, activity are labels and measurements are variables
+In other words, average each column, grouped by subject id, then activity
+
+```{r}
+tidy_averages <-aggregate(. ~Subject.Id + Activity.Name, Xy_combined, mean)
+write.table(tidy_averages, file = "averages_per_subject_per_activity.txt")
+```
