@@ -80,4 +80,4 @@ names(Xy_combined)
 # where subject, activity are labels and measurements are variables
 # In other words, average each column, grouped by subject id, then activity
 tidy_averages <-aggregate(. ~Subject.Id + Activity.Name, Xy_combined, mean)
-write.table(tidy_averages, file = "averages_per_subject_per_activity.txt")
+write.table(tidy_averages, file = "averages_per_subject_per_activity.txt", row.names=FALSE)

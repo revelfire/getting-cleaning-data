@@ -358,7 +358,7 @@ names(Xy_combined)</code></pre>
 <p>1 walking 0.3535 -0.131</p>
 <p>where subject, activity are labels and measurements are variables In other words, average each column, grouped by subject id, then activity</p>
 <pre class="r"><code>tidy_averages &lt;-aggregate(. ~Subject.Id + Activity.Name, Xy_combined, mean)
-write.table(tidy_averages, file = &quot;averages_per_subject_per_activity.txt&quot;)</code></pre>
+write.table(tidy_averages, file = &quot;averages_per_subject_per_activity.txt&quot;, row.name=FALSE)</code></pre>
 </div>
 
 
